@@ -118,7 +118,7 @@ def simplex(c, A, b):
     return solution
 
 # Load data from CSV and run both methods
-filename = 'func.csv'
+filename = 'System.csv'
 objective_coeffs, constraints, bounds, maximize = parse_csv(filename)
 
 print("Solution using OR-Tools:")
