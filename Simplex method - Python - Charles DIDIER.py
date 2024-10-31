@@ -2,8 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from ortools.linear_solver import pywraplp
 import pandas as pd
-import seaborn as sns
-
 # Part 1: Read CSV and Parse Data
 def parse_csv(filename):
     # Define column names and read CSV
