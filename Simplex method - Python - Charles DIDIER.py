@@ -70,35 +70,35 @@ def plot_3d_graph(objective_coeffs, constraints, bounds, solution):
 
 # Part 3: Custom Simplex Method
 def simplex(c, A, b):
-    num_vars, num_constraints = len(c), len(b)
-    tableau = np.hstack([A, np.eye(num_constraints), b.reshape(-1, 1)])
-    tableau = np.vstack([tableau, np.hstack([-c, np.zeros(num_constraints + 1)])])
+    num_vars = len(c)
+    tableau = np.zeros((len(b) + 1, len(c) + len(b) + 1))
+    tableau[:-1, :num_vars] = A
+    tableau[:-1, num_vars:num_vars + len(b)] = np.eye(len(b))
+    tableau[:-1, -1] = b
+    tableau[-1, :num_vars] = -c
 
-    basic_vars = [f's{i+1}' for i in range(num_constraints)] + ['Objective']
+    # Basic variable setup
+    basic_vars = [f's{i+1}' for i in range(len(b))] + ['Objective']
     row_names = [f'Basic {var}' for var in basic_vars]
-    col_names = ["Basic Variable"] + [f'x{i+1}' for i in range(num_vars)] + [f's{i+1}' for i in range(num_constraints)] + ['RHS']
+    col_names = ["Basic Variable"] + [f'x{i+1}' for i in range(num_vars)] + [f's{i+1}' for i in range(len(b))] + ['RHS']
 
     def display_tableau(tableau, row_names, col_names, basic_vars):
+        # Prepare DataFrame for display without graphical output
         tableau_df = pd.DataFrame(tableau, index=row_names, columns=col_names[1:])
         tableau_df.insert(0, "Basic Variable", basic_vars)
-
         print("Current Tableau:")
         print(tableau_df)
-        
-        # Display numeric part as heatmap
-        plt.figure(figsize=(10, 6))
-        sns.heatmap(tableau[:, :-1], annot=True, cmap="YlGnBu", cbar=False, fmt=".2f")
-        plt.xlabel("Variables")
-        plt.ylabel("Constraints")
-        plt.show()
 
+    # Simplex algorithm
     while True:
         display_tableau(tableau, row_names, col_names, basic_vars)
         
+        # Determine pivot column (most negative indicator in objective row)
         pivot_col = np.argmin(tableau[-1, :-1])
         if tableau[-1, pivot_col] >= 0:
             break
 
+        # Determine pivot row (smallest positive ratio), excluding division by zero
         ratios = np.divide(
             tableau[:-1, -1], tableau[:-1, pivot_col], 
             out=np.full_like(tableau[:-1, -1], np.inf), 
@@ -106,19 +106,23 @@ def simplex(c, A, b):
         )
         pivot_row = np.argmin(ratios)
 
+        # Update basic variable name
         basic_vars[pivot_row] = col_names[pivot_col + 1]
-        tableau[pivot_row] /= tableau[pivot_row, pivot_col]
-        for i in range(len(tableau)):
+
+        # Perform pivot
+        tableau[pivot_row, :] /= tableau[pivot_row, pivot_col]
+        for i in range(tableau.shape[0]):
             if i != pivot_row:
-                tableau[i] -= tableau[i, pivot_col] * tableau[pivot_row]
+                tableau[i, :] -= tableau[i, pivot_col] * tableau[pivot_row, :]
 
     display_tableau(tableau, row_names, col_names, basic_vars)
     solution = tableau[:-1, -1]
     print("Optimal Solution:", solution)
     return solution
 
+
 # Load data from CSV and run both methods
-filename = 'System.csv'
+filename = r"system.csv"
 objective_coeffs, constraints, bounds, maximize = parse_csv(filename)
 
 print("Solution using OR-Tools:")
@@ -126,3 +130,4 @@ solve_lp_with_ortools(objective_coeffs, constraints, bounds, maximize)
 
 print("\nSolution using Simplex Method:")
 simplex(np.array(objective_coeffs), np.array(constraints), np.array(bounds))
+        
